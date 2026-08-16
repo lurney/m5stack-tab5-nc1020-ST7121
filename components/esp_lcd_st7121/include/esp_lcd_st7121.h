@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+#define ESP_LCD_ST7121_VER_MAJOR 1
+#define ESP_LCD_ST7121_VER_MINOR 0
+#define ESP_LCD_ST7121_VER_PATCH 1
+
 /**
  * @brief LCD panel initialization commands.
  */

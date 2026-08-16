@@ -238,9 +238,9 @@ void clear_nand_status(){
     nand_read_cnt = 0;
 }
 uint8_t read_nand(){
-    bool CLE;
-    bool ALE;
-    bool CE;
+    bool CLE = false;
+    bool ALE = false;
+    bool CE = false;
     if(nc3000mode){
         CLE = ram_io[0x18]&0x20;
         ALE = ram_io[0x18]&0x10;
@@ -369,7 +369,7 @@ uint8_t read_nand(){
             for(int i=0;i<nand_cmd.size();i++){
                 printf("<%x>",(unsigned char)nand_cmd[i]);
             }
-            printf("<%x;%x,%x:%x,%d>\n", final, pos, low,cmd,nand_read_cnt);
+            printf("<%x;%x,%x:%x,%d>\n", (unsigned)final, (unsigned)pos, (unsigned)low, (unsigned)cmd, nand_read_cnt);
         }
         uint8_t result=nb_get(final);
         //if(final<0) return 0x00;
@@ -380,6 +380,7 @@ uint8_t read_nand(){
     }
 
     assert(false);
+    return 0;
 }
 
 void debug_show_nand_cmd(){
@@ -392,9 +393,9 @@ void debug_show_nand_cmd(){
     }
 }
 void nand_write(uint8_t value){
-    bool CLE;
-    bool ALE;
-    bool CE;
+    bool CLE = false;
+    bool ALE = false;
+    bool CE = false;
     if(nc3000mode){
         CLE = ram_io[0x18]&0x20;
         ALE = ram_io[0x18]&0x10;

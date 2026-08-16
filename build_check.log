@@ -1,0 +1,1 @@
+. ~/esp/setup_env.sh && idf.py build 2>&1 | tail -60

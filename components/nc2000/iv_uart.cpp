@@ -277,6 +277,7 @@ uint8_t read_3a_inner(){
         return GPC;
     }
     assert(false);
+    return 0;
 }
 uint8_t read_3a(){
     uint8_t ret= read_3a_inner();
@@ -344,6 +345,7 @@ uint8_t read_3b_inner(){
         return RESERVED;
     }
     assert(false);
+    return 0;
 }
 uint8_t read_3b(){
     uint8_t ret= read_3b_inner();
@@ -402,6 +404,7 @@ uint8_t read_3c_inner(){
         return P05;
     }
     assert(false);
+    return 0;
 }
 uint8_t read_3c(){
     uint8_t ret= read_3c_inner();
@@ -455,6 +458,7 @@ uint8_t read_3d_inner(){
         return bk;
     }
     assert(false);
+    return 0;
 }
 void write_3d(uint8_t value){
     if(uart_log_level>=2){

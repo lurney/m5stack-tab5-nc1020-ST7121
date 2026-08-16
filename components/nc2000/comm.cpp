@@ -171,7 +171,7 @@ void init_parameters(){
     CYCLES_SECOND = 3686400*(pc1000mode) + 5120*1000*(nc1020mode||nc2000mode)+10240*1000*nc3000mode;
     CYCLES_SECOND *= oc_factor;
     CYCLES_MS = CYCLES_SECOND / 1000;
-    printf("cycles per second is %d\n",CYCLES_SECOND);
+    printf("cycles per second is %lu\n",(unsigned long)CYCLES_SECOND);
     
     // below are not used in new cpu loop,
     // but they are kept for old cpu loop for compare

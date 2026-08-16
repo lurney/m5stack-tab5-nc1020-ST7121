@@ -247,7 +247,7 @@ static void audio_mix_cb(void* userdata, Uint8* stream, int len_bytes) {
 
 // Initialize one device with a callback, no SDL_mixer required.
 void init_audio() {
-    dsp.callback = dsp_call_back;
+    // dsp.callback = dsp_call_back;  // type mismatch, never called anyway
 
     SDL_AudioSpec desired_spec = {};
     desired_spec.freq = (int)BEEPER_AUDIO_HZ;   // Pick beeper rate to avoid resampling it

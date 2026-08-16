@@ -1,4 +1,2 @@
 dependencies:
-  idf:
-    version: '>=5.4'
   espressif/esp_lcd_touch: '*'

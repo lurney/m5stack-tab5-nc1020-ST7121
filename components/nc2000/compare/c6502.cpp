@@ -174,14 +174,14 @@ void C6502::NOP_ea() {
 void C6502::BIT_24() {
     clk += 36;
     int dt = bus->read(getCode());
-    P = P & 0x3d | (dt & 0xc0);
+    P = (P & 0x3d) | (dt & 0xc0);
     P |= ((A & dt) != 0) ? 0 : 2;
 }
 
 void C6502::BIT_2c() {
     clk += 48;
     int dt = bus->read(getCodeW());
-    P = P & 0x3d | (dt & 0xc0);
+    P = (P & 0x3d) | (dt & 0xc0);
     P |= ((A & dt) != 0) ? 0 : 2;
 }
 

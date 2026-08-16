@@ -11,6 +11,9 @@
 #include <sys/param.h>
 #include "esp_system.h"
 #include "esp_err.h"
+#define ESP_LCD_TOUCH_ST7123_VER_MAJOR 1
+#define ESP_LCD_TOUCH_ST7123_VER_MINOR 0
+#define ESP_LCD_TOUCH_ST7123_VER_PATCH 1
 #include "esp_log.h"
 #include "esp_check.h"
 #include "freertos/FreeRTOS.h"

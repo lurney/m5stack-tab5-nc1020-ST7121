@@ -4,7 +4,7 @@ extern "C" {
 #ifdef HANDYPSP
 //#include "ANSI/w65c02.h"
 #else
-#include "ANSI/65C02.h"
+#include "ansi/w65c02.h"
 #endif
 }
 #include "cpu.h"

@@ -326,6 +326,7 @@ uint8_t** GetVolumm(uint8_t volume_idx){
 		assert(false);
 	}
 	assert(false);
+    return 0;
 }
 void Switch0x2000(){
 	if(nc1020mode){
@@ -353,7 +354,7 @@ void Switch0x2000(){
 }
 
 void SwitchBbsBios_67(){
-	uint8_t** candidate_for_bbs;
+	uint8_t** candidate_for_bbs = nullptr;
 	uint8_t* bbs_pages[0x10];
 	if(pc1000mode){
 		uint8_t volume_idx = ram_io[0x0D];

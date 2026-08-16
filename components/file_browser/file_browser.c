@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 
 static const char *TAG = "file_browser";
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 
 #define MAX_FILES       256
 #define MAX_PATH        512
@@ -551,3 +553,5 @@ void file_browser_deinit(void)
 {
     s_running = false;
 }
+
+#pragma GCC diagnostic pop

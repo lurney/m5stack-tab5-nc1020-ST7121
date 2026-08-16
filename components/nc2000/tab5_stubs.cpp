@@ -9,15 +9,12 @@
 #include "esp_timer.h"
 #include "dsp/dsp.h"
 
-/* The global DSP/sound-chip instance the core links against (io_new.cpp does
- * `extern Dsp dsp;`). Stubbed silent for now. */
-Dsp dsp;
-
 /* ---- SDL shim ---- */
 extern "C" uint32_t SDL_GetTicks(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
 extern "C" uint64_t SDL_GetTicks64(void) { return (uint64_t)(esp_timer_get_time() / 1000); }
 extern "C" void SDL_SetWindowTitle(struct SDL_Window *w, const char *t) { (void)w; (void)t; }
 
+#ifndef HANDYPSP
 /* ---- sound / DSP backend (silent — no audio yet) ---- */
 void post_cpu_run_sound_handling() {}
 void reset_dsp() {}
@@ -49,3 +46,4 @@ char* peek_message() { return nullptr; }
 /* ---- disassembler (debug only) ---- */
 std::string disassemble2(uint16_t a) { (void)a; return std::string(); }
 std::string disassemble_next(unsigned char* c, uint16_t a) { (void)c; (void)a; return std::string(); }
+#endif // HANDYPSP
