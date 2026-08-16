@@ -2,7 +2,7 @@
 
 #include "bsp/config.h"
 #include "bsp/display.h"
-#include "bsp/esp_lcd_st7121.h"
+#include "bsp/esp_lcd_st7123.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_ops.h"
 #include "driver/i2c_master.h"
@@ -22,7 +22,7 @@ esp_lcd_panel_handle_t bsp_get_panel_handle(void);
 /* The shared SYS I2C bus (touch, IO expander, ES8388 codec all live on it). */
 i2c_master_bus_handle_t bsp_get_sys_i2c(void);
 
-/* Initialize the ST7121 TDDI touch (called by bsp_board_init after the LCD). */
+/* Initialize the ST7123 TDDI touch (called by bsp_board_init after the LCD). */
 esp_err_t bsp_touch_init(void);
 
 /* Poll one touch point. Returns true if pressed, with raw panel coords

@@ -1,0 +1,10 @@
+dependencies:
+  idf:
+    version: '>=5.4'
+cmake_compile_options:
+  CXX:
+    - "-std=gnu++17"
+    - "-fpermissive"
+    - "-w"
+    - "-DHANDYPSP"
+    - "-DTAB5_PORT"

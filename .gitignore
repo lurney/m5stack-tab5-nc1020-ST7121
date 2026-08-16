@@ -1,9 +1,9 @@
 # ESP-IDF build artifacts
 apps/nc2000_tab5/build/
-apps/nc2000_tab5/sdkconfig
-apps/nc2000_tab5/sdkconfig.old
-apps/nc2000_tab5/dependencies.lock
-apps/nc2000_tab5/managed_components/
+build/
+managed_components/
+sdkconfig.old
+dependencies.lock
 
 # Debug captures / logs
 *.txt

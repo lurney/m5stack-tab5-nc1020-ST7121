@@ -1,3 +1,4 @@
+#include "mem.h"
 #pragma once
 
 #include <stdint.h>
@@ -16,7 +17,6 @@ struct BusWrapper:IBus6502{
 		return Load(address);
 	}
     void write(int address, int value){
-        void Store(uint16_t addr, uint8_t value);
 		Store(address,value);
 	}
 };

@@ -7,6 +7,7 @@ extern "C" {
 #include "comm.h"
 #include "disassembler.h"
 #include "mem.h"
+#include "io.h"
 #include "state.h"
 #include <mutex>
 

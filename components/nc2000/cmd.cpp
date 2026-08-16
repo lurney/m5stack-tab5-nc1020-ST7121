@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include "mem.h"
+#include "io.h"
 #include "ram.h"
 #include "state.h"
 #include "cpu.h"
