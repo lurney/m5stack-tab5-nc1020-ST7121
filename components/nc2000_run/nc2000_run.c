@@ -182,6 +182,76 @@ static uint16_t key_color(uint8_t code)
     return KC_KEY;
 }
 
+/* ─── brightness overlay ─────────────────────────────────────────────── */
+static int s_brightness = 100;          /* current brightness 0-100        */
+static int s_swipe_origin_y = -1;       /* landscape Y where swipe started */
+static int64_t s_brightness_last_change = 0; /* esp_timer_get_time() of last change */
+
+#define BRIGHTNESS_OVERLAY_HIDE_MS  5000
+#define BRIGHTNESS_STEP             5
+#define BRIGHTNESS_SWIPE_THRESHOLD  20   /* pixels of vertical travel to trigger */
+
+/* Draw the brightness overlay into the nc2000 LCD buffer (landscape coords).
+ * In HW mode: draws into padding area (x>640 of 1280-wide buffer, above PPA crop).
+ * In VIRT mode: draws below PPA-cropped region (y>320 of 360-high crop).
+ * PPA never reads pixels beyond its crop so this is safe for both modes. */
+static void draw_brightness_overlay(void)
+{
+    if (s_brightness_last_change == 0) return;
+    int64_t now = esp_timer_get_time();
+    if (now - s_brightness_last_change > BRIGHTNESS_OVERLAY_HIDE_MS * 1000) {
+        s_brightness_last_change = 0;
+        return;
+    }
+
+    char buf[8];
+    int len = snprintf(buf, sizeof(buf), "%d%%", s_brightness);
+
+    /* landscape position inside the nc2000 rgb565_buf */
+    int bx, by;
+    if (s_ui_mode == UI_VIRT) {
+        /* VIRT mode: nc2000 LCD occupies landscape (256,0)-(1024,360).
+         * PPA crops output to (256,0)-(1024,320).  Draw below crop at y=370. */
+        bx = V_LCD_LX + V_LCD_W - len * 8 - 4;   /* right-aligned */
+        by = 370;
+    } else {
+        /* HW mode: nc2000 LCD occupies 1280×640. PPA crops to x 0-640.
+         * Draw in padding area at top: x>640 not displayed by PPA crop. */
+        bx = HW_LCD_W - len * 8 - 4;              /* right-aligned */
+        by = 10;
+    }
+
+    /* black background */
+    for (int j = 0; j < 16; j++)
+        for (int i = 0; i < len * 8 + 4; i++)
+            rgb565_buf[(by + j) * NC2K_LCD_W + bx + i] = 0x0000;
+    /* white text */
+    for (int j = 0; j < 16; j++) {
+        for (int k = 0; k < len; k++) {
+            char ch = buf[k];
+            if (ch < 0x20 || ch > 0x7e) continue;
+            const uint8_t *g = vpad_font8[ch - 0x20];
+            for (int row = 0; row < 16; row++)
+                for (int col = 0; col < 8; col++)
+                    if (g[row] & (0x80 >> col))
+                        rgb565_buf[(by + row) * NC2K_LCD_W + bx + k * 8 + col] = 0xFFFF;
+        }
+    }
+}
+
+/* Apply brightness change and refresh overlay timer. */
+static void apply_brightness_delta(int delta)
+{
+    int new_b = s_brightness + delta;
+    if (new_b < 5)  new_b = 5;
+    if (new_b > 100) new_b = 100;
+    if (new_b == s_brightness) return;
+    s_brightness = new_b;
+    bsp_display_brightness_set(s_brightness);
+    s_brightness_last_change = esp_timer_get_time();
+    ESP_LOGI(TAG, "Brightness: %d%%", s_brightness);
+}
+
 /* ─── drawing into a persistent portrait panel buffer ────────────────────── */
 static uint16_t *s_panel = NULL;
 
@@ -382,6 +452,13 @@ static void nc2k_present_lcd(void)
     int px0, py0;
     if (s_ui_mode == UI_VIRT) { px0 = V_LCD_LY; py0 = PORT_H - (V_LCD_LX + V_LCD_W); }
     else                      { px0 = 0;        py0 = 0; }
+
+    /* brightness overlay — drawn into nc2000 LCD buffer BEFORE PPA transform.
+     * Placed in PPA padding area: HW mode x>640 (PPA crops to 640); VIRT mode
+     * y>320 (PPA crops output to 320-high in landscape).  Both are invisible to
+     * the nc2000 LCD content and survive PPA into the right panel location. */
+    draw_brightness_overlay();
+
     esp_lcd_panel_draw_bitmap(panel, px0, py0, px0 + ow, py0 + oh, s_lcd);
 }
 
@@ -412,13 +489,40 @@ static void nc2k_poll_input(void)
     for (int i = 0; i < KEY_SIZE; i++)
         if (hw_down[i]) want[i] = true;
 
-    /* touch — hit-test the active layout */
+    /* touch — hit-test the active layout + brightness swipe */
     uint16_t xs[8], ys[8];
     int t = bsp_touch_read_points(xs, ys, 8);
     for (int i = 0; i < t; i++) {
-        int lx = (PORT_H - 1) - ys[i];
-        int ly = xs[i];
+        int lx = (PORT_H - 1) - (int)ys[i];
+        int ly = (int)xs[i];
         if (lx < 0 || lx >= LAND_W || ly < 0 || ly >= LAND_H) continue;
+
+        /* ── brightness swipe: vertical motion inside the nc2000 LCD area ── */
+        bool in_screen = false;
+        if (s_ui_mode == UI_VIRT) {
+            if (lx >= V_LCD_LX && lx < V_LCD_LX + V_LCD_W && ly < V_KBD_Y)
+                in_screen = true;
+        } else {
+            if (ly < HW_FN_Y)
+                in_screen = true;
+        }
+        if (in_screen) {
+            if (s_swipe_origin_y < 0) {
+                s_swipe_origin_y = ly;        /* first point of this stroke */
+            } else {
+                int dy = s_swipe_origin_y - ly;  /* +up / -down in landscape */
+                if (dy > BRIGHTNESS_SWIPE_THRESHOLD) {
+                    apply_brightness_delta(+BRIGHTNESS_STEP);
+                    s_swipe_origin_y = ly;
+                } else if (dy < -BRIGHTNESS_SWIPE_THRESHOLD) {
+                    apply_brightness_delta(-BRIGHTNESS_STEP);
+                    s_swipe_origin_y = ly;
+                }
+            }
+            continue;   /* don't hit-test keys while in the screen area */
+        }
+        /* touch ended outside the screen area → reset swipe */
+        if (s_swipe_origin_y >= 0 && t == 0) { /* cleared below after loop */}
 
         uint8_t code = KEY_NONE;
         if (s_ui_mode == UI_VIRT) {
@@ -444,6 +548,7 @@ static void nc2k_poll_input(void)
             default:          if (code < KEY_SIZE) want[code] = true; break;
         }
     }
+    if (t == 0) s_swipe_origin_y = -1;  /* no touch → reset swipe */
     if (exit_now && !exit_prev) s_kbd_exit = true;
     if (save_now && !save_prev) s_save_req = true;
     if (tgl_now  && !tgl_prev)  { s_ui_mode ^= 1; s_mode_dirty = true; kbmode_save(); }
