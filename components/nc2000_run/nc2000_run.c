@@ -191,10 +191,13 @@ static int64_t s_brightness_last_change = 0; /* esp_timer_get_time() of last cha
 #define BRIGHTNESS_STEP             5
 #define BRIGHTNESS_SWIPE_THRESHOLD  20   /* pixels of vertical travel to trigger */
 
-/* Draw the brightness overlay into the nc2000 LCD buffer (landscape coords).
- * In HW mode: draws into padding area (x>640 of 1280-wide buffer, above PPA crop).
- * In VIRT mode: draws below PPA-cropped region (y>320 of 360-high crop).
- * PPA never reads pixels beyond its crop so this is safe for both modes. */
+/* Draw the brightness overlay into s_lcd (the PPA output buffer, HW_LCD_W×HW_LCD_H).
+ * Drawn AFTER PPA transform so coordinates are in final display space.
+ * HW  mode: PPA outputs 640×640 → overlay at (620,10) is within PPA crop
+ * VIRT mode: PPA outputs 768×360 → overlay at (700,10) is within PPA crop
+ * nc2000 LCD HW  : x 0-639, y 0-639 → overlay briefly covers corner pixels (acceptable)
+ * nc2000 LCD VIRT: x 0-767, y 0-359 → overlay briefly covers corner pixels
+ * Background: black; text: white; drawn with bounds check into s_lcd. */
 static void draw_brightness_overlay(void)
 {
     if (s_brightness_last_change == 0) return;
@@ -206,25 +209,21 @@ static void draw_brightness_overlay(void)
 
     char buf[8];
     int len = snprintf(buf, sizeof(buf), "%d%%", s_brightness);
+    if (len <= 0) return;
 
-    /* landscape position inside the nc2000 rgb565_buf */
-    int bx, by;
-    if (s_ui_mode == UI_VIRT) {
-        /* VIRT mode: nc2000 LCD occupies landscape (256,0)-(1024,360).
-         * PPA crops output to (256,0)-(1024,320).  Draw below crop at y=370. */
-        bx = V_LCD_LX + V_LCD_W - len * 8 - 4;   /* right-aligned */
-        by = 370;
-    } else {
-        /* HW mode: nc2000 LCD occupies 1280×640. PPA crops to x 0-640.
-         * Draw in padding area at top: x>640 not displayed by PPA crop. */
-        bx = HW_LCD_W - len * 8 - 4;              /* right-aligned */
-        by = 10;
-    }
+    if (!s_lcd) return;
 
-    /* black background */
-    for (int j = 0; j < 16; j++)
-        for (int i = 0; i < len * 8 + 4; i++)
-            rgb565_buf[(by + j) * NC2K_LCD_W + bx + i] = 0x0000;
+    /* overlay origin in PPA output (landscape) coords */
+    int ox = (s_ui_mode == UI_VIRT) ? 700 : 620;
+    int oy = 10;
+
+    /* black background (len*8+6 wide, 18 tall) */
+    for (int j = 0; j < 18; j++)
+        for (int i = 0; i < len * 8 + 6; i++) {
+            int px = ox + i, py = oy + j;
+            if (px >= 0 && px < HW_LCD_W && py >= 0 && py < HW_LCD_H)
+                s_lcd[py * HW_LCD_W + px] = 0x0000;
+        }
     /* white text */
     for (int j = 0; j < 16; j++) {
         for (int k = 0; k < len; k++) {
@@ -233,8 +232,12 @@ static void draw_brightness_overlay(void)
             const uint8_t *g = vpad_font8[ch - 0x20];
             for (int row = 0; row < 16; row++)
                 for (int col = 0; col < 8; col++)
-                    if (g[row] & (0x80 >> col))
-                        rgb565_buf[(by + row) * NC2K_LCD_W + bx + k * 8 + col] = 0xFFFF;
+                    if (g[row] & (0x80 >> col)) {
+                        int px = ox + k * 8 + col + 3;
+                        int py = oy + row + 1;
+                        if (px >= 0 && px < HW_LCD_W && py >= 0 && py < HW_LCD_H)
+                            s_lcd[py * HW_LCD_W + px] = 0xFFFF;
+                    }
         }
     }
 }
